@@ -1,0 +1,99 @@
+---
+- name: Install OpenVPN GPG key
+  apt_key:
+    url: https://swupdate.openvpn.net/repos/repo-public.gpg
+    state: present
+  when:
+    (ansible_os_family == "Debian") and
+    (ansible_distribution_release != "buster")
+  tags:
+    - openvpn
+
+- name: Add OpenVPN repository
+  apt_repository:
+    repo: 'deb http://build.openvpn.net/debian/openvpn/stable {{ ansible_distribution_release }} main'
+    state: present
+    filename: openvpn-aptrepo.list
+  when:
+    (ansible_os_family == "Debian") and
+    (ansible_distribution_release != "buster")
+  tags:
+    - openvpn
+
+- name: Install openvpn package
+  apt: name=openvpn update_cache=yes
+  when:
+    ansible_os_family == "Debian"
+  notify:
+    - openvpn systemd buster
+  tags:
+    - openvpn
+
+- name: Install openvpn package
+  apt: name=openvpn update_cache=yes
+  when:
+    (ansible_os_family == "Debian") and
+    (ansible_distribution_release != "buster")
+  notify:
+    - openvpn systemd buster
+  tags:
+    - openvpn
+
+- name: Replace ca.crt
+  template:
+    src: templates/ca.crt
+    dest: /etc/openvpn/ca.crt
+    mode: 0644
+  tags:
+    - openvpn
+
+- name: Replace server.crt
+  template:
+    src: templates/server.crt
+    dest: /etc/openvpn/server.crt
+    mode: 0644
+  tags:
+    - openvpn
+
+- name: Replace server.key
+  template:
+    src: templates/server.key
+    dest: /etc/openvpn/server.key
+    mode: 0400
+  tags:
+    - openvpn
+
+- name: Replace dh2048.pem 
+  template:
+    src: templates/dh2048.pem 
+    dest: /etc/openvpn/dh2048.pem
+    mode: 0644
+  tags:
+    - openvpn
+
+- name: Replace server.conf
+  template:
+    src: templates/server.conf
+    dest: /etc/openvpn/server.conf
+  notify:
+    - openvpn restart buster
+  tags:
+    - openvpn
+
+- name: Replace server.conf
+  template:
+    src: templates/server.conf
+    dest: /etc/openvpn/server.conf
+  when:
+    (ansible_os_family == "Debian") and
+    (ansible_distribution_release != "buster")
+  notify:
+    - openvpn restart buster
+  tags:
+    - openvpn
+
+- name: openvpn start enabled
+  systemd:
+    name: openvpn@server
+    enabled: yes
+    state: started

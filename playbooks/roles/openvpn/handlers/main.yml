@@ -1,0 +1,24 @@
+---
+
+- name: openvpn systemd
+  systemd:
+    name: openvpn
+    enabled: yes
+    state: started
+
+- name: openvpn restart
+  service:
+    name: openvpn
+    state: restarted
+ 
+- name: openvpn systemd buster
+  systemd:
+    name: openvpn@server
+    enabled: yes
+    state: started
+
+- name: openvpn restart buster
+  service:
+    name: openvpn@server
+    state: restarted
+

@@ -1,0 +1,24 @@
+---
+- name: Configuration IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: 1
+    sysctl_set: yes
+    state: present
+    reload: yes
+  when:
+    ansible_os_family == "Debian"
+
+- name: Replace iptables.sh
+  template:
+    src=templates/iptables.sh
+    dest=/root/iptables.sh
+    mode=0755
+
+- name: Shell start iptables.sh
+  shell: /root/iptables.sh
+
+- name: Line in file network
+  lineinfile:
+    path: /etc/network/interfaces
+    line: 'post-up iptables-restore /etc/iptables.rules'
