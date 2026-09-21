@@ -1,0 +1,73 @@
+#!/bin/bash
+set -euo pipefail
+
+export IPT="/sbin/iptables"
+export WAN="{{ wan_interface }}"
+export LAN="{{ openvpn_interface | default('tun0') }}"
+export LAN_IP_RANGE="{{ vpn_network }}"
+export ALLOW_IPS="{{ allowed_management_ips | join(' ') }}"
+export VPN_PORT="{{ vpn_port }}"
+export SSH_PORT="{{ ssh_port }}"
+
+$IPT -F
+$IPT -F -t nat
+$IPT -F -t mangle
+$IPT -X
+$IPT -t nat -X
+$IPT -t mangle -X
+
+$IPT -P INPUT DROP
+$IPT -P OUTPUT DROP
+$IPT -P FORWARD DROP
+
+$IPT -A INPUT -i lo -j ACCEPT
+$IPT -A INPUT -i "$LAN" -j ACCEPT
+$IPT -A OUTPUT -o lo -j ACCEPT
+$IPT -A OUTPUT -o "$LAN" -j ACCEPT
+
+for ip in $ALLOW_IPS; do
+  $IPT -A INPUT -s "$ip" -p icmp --icmp-type echo-request -j ACCEPT
+  $IPT -A INPUT -s "$ip" -p icmp --icmp-type echo-reply -j ACCEPT
+  $IPT -A INPUT -s "$ip" -p icmp --icmp-type destination-unreachable -j ACCEPT
+  $IPT -A INPUT -s "$ip" -p icmp --icmp-type time-exceeded -j ACCEPT
+  $IPT -A INPUT -i "$WAN" -s "$ip" -p tcp --dport "$SSH_PORT" -j ACCEPT
+done
+
+$IPT -A INPUT -s "$LAN_IP_RANGE" -p icmp --icmp-type echo-request -j ACCEPT
+$IPT -A INPUT -s "$LAN_IP_RANGE" -p icmp --icmp-type echo-reply -j ACCEPT
+$IPT -A INPUT -s "$LAN_IP_RANGE" -p icmp --icmp-type destination-unreachable -j ACCEPT
+$IPT -A INPUT -s "$LAN_IP_RANGE" -p icmp --icmp-type time-exceeded -j ACCEPT
+
+$IPT -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+$IPT -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+$IPT -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+$IPT -A INPUT -m conntrack --ctstate INVALID -j DROP
+$IPT -A FORWARD -m conntrack --ctstate INVALID -j DROP
+$IPT -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+$IPT -A INPUT -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+$IPT -A OUTPUT -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+
+$IPT -A OUTPUT -o "$WAN" -j ACCEPT
+$IPT -A FORWARD -i "$LAN" -o "$WAN" -j ACCEPT
+
+$IPT -t nat -A POSTROUTING -o "$WAN" -s "$LAN_IP_RANGE" -j MASQUERADE
+
+$IPT -A INPUT -i "$WAN" -p udp --dport "$VPN_PORT" -j ACCEPT
+
+$IPT -N block_in
+$IPT -N block_out
+$IPT -N block_fw
+
+$IPT -A INPUT -j block_in
+$IPT -A OUTPUT -j block_out
+$IPT -A FORWARD -j block_fw
+
+$IPT -A block_in -j LOG --log-level info --log-prefix "--IN--BLOCK"
+$IPT -A block_in -j DROP
+$IPT -A block_out -j LOG --log-level info --log-prefix "--OUT--BLOCK"
+$IPT -A block_out -j DROP
+$IPT -A block_fw -j LOG --log-level info --log-prefix "--FW--BLOCK"
+$IPT -A block_fw -j DROP
+
+/sbin/iptables-save > /etc/iptables.rules

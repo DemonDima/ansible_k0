@@ -1,0 +1,27 @@
+---
+- name: Enable IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: true
+    state: present
+    reload: true
+  when: ansible_os_family == "Debian"
+
+- name: Deploy firewall script
+  template:
+    src: iptables.sh.j2
+    dest: /root/iptables.sh
+    mode: '0755'
+
+- name: Apply firewall rules
+  command: /root/iptables.sh
+  register: firewall_apply
+  changed_when: firewall_apply.rc == 0
+
+- name: Ensure restore on boot
+  lineinfile:
+    path: /etc/network/interfaces
+    regexp: '^post-up iptables-restore /etc/iptables.rules$'
+    line: 'post-up iptables-restore /etc/iptables.rules'
+    create: true

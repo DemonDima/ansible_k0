@@ -1,0 +1,6 @@
+---
+- hosts: vpn_servers
+  become: true
+  roles:
+    - role: openvpn
+    - role: gw

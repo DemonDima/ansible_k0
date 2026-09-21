@@ -1,0 +1,27 @@
+# OpenVPN server configuration
+port {{ vpn_port }}
+proto {{ openvpn_proto | default('udp') }}
+
+;local a.b.c.d
+;dev tap
+dev tun
+
+ca {{ openvpn_tls_dir }}/ca.crt
+cert {{ openvpn_tls_dir }}/server.crt
+key {{ openvpn_tls_dir }}/server.key
+dh {{ openvpn_tls_dir }}/dh2048.pem
+
+server {{ vpn_network.split('/')[0] }} 255.255.255.0
+keepalive 10 120
+
+{% if openvpn_redirect_gateway | default(false) %}
+push "redirect-gateway def1 bypass-dhcp"
+{% endif %}
+
+{% for dns in openvpn_dns_servers | default([]) %}
+push "dhcp-option DNS {{ dns }}"
+{% endfor %}
+
+;duplicate-cn
+cipher AES-256-CBC
+auth sha1
