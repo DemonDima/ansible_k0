@@ -30,7 +30,7 @@
     mode: '0755'
   tags: [openvpn]
 
-- name: Install TLS material from variables
+- name: Install TLS material
   copy:
     content: "{{ item.content }}"
     dest: "{{ item.dest }}"
@@ -45,7 +45,7 @@
 
 - name: Deploy OpenVPN server config
   template:
-    src: templates/server.conf
+    src: templates/server.conf.j2
     dest: "{{ openvpn_tls_dir }}/server.conf"
     mode: '0644'
   notify: openvpn restart buster

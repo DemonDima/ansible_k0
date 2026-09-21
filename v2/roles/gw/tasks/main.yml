@@ -8,9 +8,9 @@
     reload: true
   when: ansible_os_family == "Debian"
 
-- name: Deploy firewall rules script
+- name: Deploy firewall script
   template:
-    src: iptables.sh
+    src: iptables.sh.j2
     dest: /root/iptables.sh
     mode: '0755'
 
@@ -19,7 +19,7 @@
   register: firewall_apply
   changed_when: firewall_apply.rc == 0
 
-- name: Ensure iptables restore is configured on boot
+- name: Ensure restore on boot
   lineinfile:
     path: /etc/network/interfaces
     regexp: '^post-up iptables-restore /etc/iptables.rules$'

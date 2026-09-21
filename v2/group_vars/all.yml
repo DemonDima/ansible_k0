@@ -1,0 +1,13 @@
+---
+# Общие значения для всех серверов
+vpn_subnet: 40
+vpn_port: 1194
+vpn_network: "10.8.{{ vpn_subnet }}.0/24"
+wan_interface: eth0
+ssh_port: 22
+allowed_management_ips:
+  - 185.197.161.44
+  - 193.42.109.24
+  - 82.146.35.177
+  - 91.227.136.24
+openvpn_tls_dir: /etc/openvpn

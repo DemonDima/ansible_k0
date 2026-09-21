@@ -1,0 +1,9 @@
+---
+# Настройки, специфичные для VPN-хостов.
+openvpn_service_name: openvpn@server
+openvpn_proto: udp
+openvpn_interface: tun0
+openvpn_redirect_gateway: true
+openvpn_dns_servers:
+  - 208.67.222.222
+  - 208.67.220.220

@@ -5,4 +5,8 @@ ansible.cfg
 server.crt
 server.key
 ca.crt
+group_vars/vpn_secrets.yml
+*.pem
+*.key
+*.crt
 
